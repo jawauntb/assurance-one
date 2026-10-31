@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "precert"
+version = "0.1.0"
+description = "Pre-execution gate for AI agent tool calls: Z3- and Lean-checked invariants, signed receipts, Merkle log."
+requires-python = ">=3.11"
+dependencies = ["z3-solver", "cbor2", "cryptography"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
