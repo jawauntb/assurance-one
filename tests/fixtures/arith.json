@@ -1,0 +1,19 @@
+{
+  "name": "arith",
+  "constants": {"k": 7},
+  "state": {"q": "int", "r": "int", "flag": "bool"},
+  "init": {"q": 0, "r": 0, "flag": false},
+  "invariants": {"r_range": "0 <= r and r < k"},
+  "actions": {
+    "divmod": {
+      "args": {"x": "int"},
+      "pre": {},
+      "update": {"q": "x // k", "r": "x % k", "flag": "x < 0"}
+    },
+    "neg": {
+      "args": {"x": "int"},
+      "pre": {},
+      "update": {"q": "-x // 3", "r": "(-x) % k", "flag": "not flag"}
+    }
+  }
+}

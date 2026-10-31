@@ -1,0 +1,8 @@
+{
+  "name": "bad_nonlinear",
+  "constants": {},
+  "state": {"x": "int", "y": "int"},
+  "init": {"x": 0, "y": 0},
+  "invariants": {"sq": "x * y >= 0"},
+  "actions": {"noop": {"args": {}, "pre": {}, "update": {}}}
+}

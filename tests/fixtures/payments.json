@@ -1,0 +1,32 @@
+{
+  "name": "payments",
+  "constants": {"budget": 100000, "cap": 20000, "allowlist": ["acme", "globex", "initech"], "max_per_window": 5, "window_s": 3600},
+  "state": {"spent": "int", "cur_window": "int", "count": "int", "last_ts": "int"},
+  "init": {"spent": 0, "cur_window": -1, "count": 0, "last_ts": 0},
+  "invariants": {
+    "within_budget": "spent <= budget",
+    "nonneg_spend": "spent >= 0",
+    "rate": "count <= max_per_window",
+    "count_nonneg": "count >= 0"
+  },
+  "actions": {
+    "pay": {
+      "args": {"payee": "str", "amount_cents": "int", "ts": "int"},
+      "pre": {
+        "positive": "amount_cents > 0",
+        "cap": "amount_cents <= cap",
+        "budget": "spent + amount_cents <= budget",
+        "allowlisted": "payee in allowlist",
+        "ts_nonneg": "ts >= 0",
+        "monotone_time": "ts >= last_ts",
+        "rate": "(ts // window_s != cur_window) or (count < max_per_window)"
+      },
+      "update": {
+        "spent": "spent + amount_cents",
+        "count": "count + 1 if ts // window_s == cur_window else 1",
+        "cur_window": "ts // window_s",
+        "last_ts": "ts"
+      }
+    }
+  }
+}

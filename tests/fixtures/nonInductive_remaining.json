@@ -1,0 +1,14 @@
+{
+  "name": "remaining_bad",
+  "constants": {"budget": 100000},
+  "state": {"spent": "int", "remaining": "int"},
+  "init": {"spent": 0, "remaining": 100000},
+  "invariants": {"within_budget": "spent <= budget"},
+  "actions": {
+    "pay": {
+      "args": {"amount_cents": "int"},
+      "pre": {"positive": "amount_cents > 0", "funds": "amount_cents <= remaining"},
+      "update": {"spent": "spent + amount_cents", "remaining": "remaining - amount_cents"}
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "bad_init",
+  "constants": {"budget": 100},
+  "state": {"spent": "int"},
+  "init": {"spent": 500},
+  "invariants": {"within_budget": "spent <= budget"},
+  "actions": {"noop": {"args": {}, "pre": {}, "update": {}}}
+}

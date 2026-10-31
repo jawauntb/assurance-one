@@ -1,0 +1,8 @@
+{
+  "name": "bad_call",
+  "constants": {},
+  "state": {"x": "int"},
+  "init": {"x": 0},
+  "invariants": {"ok": "abs(x) >= 0"},
+  "actions": {"noop": {"args": {}, "pre": {}, "update": {}}}
+}

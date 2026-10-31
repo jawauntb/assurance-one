@@ -1,0 +1,22 @@
+{
+  "name": "deploy",
+  "constants": {},
+  "state": {"passed_checks": "int", "deploys": "int"},
+  "init": {"passed_checks": 0, "deploys": 0},
+  "invariants": {
+    "no_unverified_deploy": "deploys <= passed_checks",
+    "nonneg": "deploys >= 0"
+  },
+  "actions": {
+    "record_check": {
+      "args": {"ok": "bool"},
+      "pre": {},
+      "update": {"passed_checks": "passed_checks + 1 if ok else passed_checks"}
+    },
+    "deploy": {
+      "args": {"commit": "str"},
+      "pre": {"fresh_check": "passed_checks > deploys"},
+      "update": {"deploys": "deploys + 1"}
+    }
+  }
+}

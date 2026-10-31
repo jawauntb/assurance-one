@@ -1,0 +1,20 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: tests are read-only
+        run: scripts/check_tests_lock.sh
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: install elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain stable
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - run: pip install z3-solver cbor2 cryptography pytest
+      - name: no escape hatches in src
+        run: "! grep -rnE '\\b(sorry|admit|native_decide)\\b' src || (echo 'escape hatch in src' && exit 1)"
+      - run: pytest -c tests/pytest.ini tests -v
