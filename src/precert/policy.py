@@ -4,7 +4,7 @@ import json
 import re
 
 from .canon import H, canon
-from .errors import InitViolation, PolicyNotInductive, PolicySyntaxError
+from .errors import InitViolation, PolicyError, PolicyNotInductive, PolicySyntaxError
 from .expr import Scope, check_ident, compile_expr, is_bool, is_int, to_py
 
 NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -135,7 +135,13 @@ def load_policy(path_or_dict, skip_inductive_check=False):
         raise InitViolation(bad)
     if not skip_inductive_check:
         from .solver import check_inductive
-        check_inductive(policy)
+        try:
+            check_inductive(policy)
+        except PolicyError:
+            raise
+        except Exception as e:      # an encoder failure must reject the policy, as a PolicyError
+            raise PolicySyntaxError(f"cannot encode policy for the inductiveness check: {type(e).__name__}: {e}") \
+                from None
     return policy
 
 
@@ -153,7 +159,7 @@ def _parse(raw, skip):
     except (TypeError, ValueError, UnicodeError) as e:
         raise PolicySyntaxError(f"policy is not canonical JSON: {e}") from None
     name = raw["name"]
-    if not isinstance(name, str) or not NAME_RE.match(name):
+    if not isinstance(name, str) or not NAME_RE.fullmatch(name):
         raise PolicySyntaxError(f"policy name {name!r} must match ^[a-z][a-z0-9_]*$")
 
     constants = raw.get("constants", {})

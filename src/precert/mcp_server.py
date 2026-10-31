@@ -8,6 +8,7 @@ every tools/call goes through Gate.execute, which writes exactly one signed rece
 import argparse
 import importlib
 import json
+import os
 import sys
 
 from . import Gate, ReceiptLog, Signer, load_policy
@@ -17,10 +18,38 @@ JSON_TYPES = {"int": "integer", "bool": "boolean", "str": "string"}
 
 
 class Server:
+    """Gate state persists in <log>.state.json next to the log, so a restart resumes instead of resetting
+    (which would let spent budget be spent again). A log with receipts but no matching state file refuses to
+    start: the state cannot be rebuilt from receipts, so the server fails closed."""
+
     def __init__(self, policy, tools, log_path, state=None, signer=None):
         self.policy = policy
         self.tools = tools
-        self.gate = Gate(policy, state=state, signer=signer or Signer.generate(), log=ReceiptLog(log_path))
+        self.state_path = log_path + ".state.json"
+        log = ReceiptLog(log_path)
+        self.gate = Gate(policy, state=state, signer=signer or Signer.generate(), log=log)
+        if os.path.exists(self.state_path):
+            with open(self.state_path, encoding="utf-8") as f:
+                saved = json.load(f)
+            if saved.get("policy_hash") != policy.hash:
+                raise SystemExit(f"{self.state_path} belongs to a different policy")
+            if saved.get("log_size") != log.size:
+                raise SystemExit(f"{self.state_path} does not match the log ({saved.get('log_size')} != {log.size})")
+            if state is not None:
+                print("precert: resuming persisted state; --state ignored", file=sys.stderr)
+            self.gate._restore(saved["state"], saved.get("halted", False))
+        elif log.size:
+            raise SystemExit(f"log {log_path} has {log.size} receipts but no {self.state_path}; refusing to reset state")
+        self._persist()
+
+    def _persist(self):
+        tmp = self.state_path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({"policy_hash": self.policy.hash, "log_size": self.gate.log.size,
+                       "state": self.gate.state, "halted": self.gate.halted}, f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, self.state_path)
 
     def governed(self):
         """Policy actions that also have an implementation, in policy order."""
@@ -58,6 +87,7 @@ class Server:
         # Ungoverned names never reach their implementation: the gate sees them as unknown tools (or, for a policy
         # action with no implementation, the stand-in raises and the receipt records tool_error).
         r = self.gate.execute(action, impl if impl is not None else refuse)
+        self._persist()
         v = r.verdict
         body = {"decision": v.decision, "reason": v.reason, "violated": v.violated, "output": r.output}
         return {"content": [{"type": "text", "text": json.dumps(body, default=repr)}],
@@ -126,12 +156,16 @@ def main(argv=None):
             continue
         try:
             msg = json.loads(line)
-        except ValueError:
+        except Exception:           # ValueError, RecursionError on pathological nesting, ...
             resp = _error(None, -32700, "parse error")
         else:
             resp = server.handle(msg)
         if resp is not None:
-            out.write(json.dumps(resp) + "\n")
+            try:
+                text = json.dumps(resp)
+            except Exception:
+                text = json.dumps(_error(None, -32603, "internal error"))
+            out.write(text + "\n")
             out.flush()
 
 

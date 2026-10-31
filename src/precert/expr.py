@@ -36,7 +36,7 @@ def is_bool(v):
 
 
 def check_ident(name, what):
-    if not isinstance(name, str) or not IDENT.match(name) or keyword.iskeyword(name):
+    if not isinstance(name, str) or not IDENT.fullmatch(name) or keyword.iskeyword(name):
         raise PolicySyntaxError(f"{what} name {name!r} is not a valid identifier")
 
 

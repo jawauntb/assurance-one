@@ -59,7 +59,12 @@ def encode(ir, env, policy, ids):
         return e % d if d > 0 else e - z3.IntVal(d) * _fdiv(e, d)
     if k == "cmp":
         a, b = encode(ir[2], env, policy, ids), encode(ir[3], env, policy, ids)
-        return {"<": a < b, "<=": a <= b, "==": a == b, "!=": a != b, ">": a > b, ">=": a >= b}[ir[1]]
+        op = ir[1]
+        if op == "==":
+            return a == b
+        if op == "!=":
+            return a != b
+        return {"<": lambda: a < b, "<=": lambda: a <= b, ">": lambda: a > b, ">=": lambda: a >= b}[op]()
     if k == "smem":
         v = env[("arg", ir[1])]
         m = z3.Or([v == ids[s] for s in policy.constants[ir[2]]]) if policy.constants[ir[2]] else z3.BoolVal(False)
